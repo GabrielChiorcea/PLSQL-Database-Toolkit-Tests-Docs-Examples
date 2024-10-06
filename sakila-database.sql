@@ -167,7 +167,6 @@ ORDER BY length DESC;
 
 
 #Exercițiul 15: Găsește filmele care au fost închiriate cel mai frecvent în ultimele 6 luni, împreună cu numărul de închirieri și încasările generate.
- 
 WITH RentalCounts AS (
     SELECT 
         film.title, 
@@ -206,3 +205,222 @@ JOIN
     AverageRentals ar ON rc.total > ar.avg_rentals
 ORDER BY 
     rc.total DESC;
+
+
+#Exercițiul 16: Găsește clienții care au cheltuit cei mai mulți bani într-o singură închiriere
+#Afișează clienții care au efectuat cea mai mare plată într-o singură închiriere.
+SELECT 
+    CONCAT(customer.first_name, ' ', customer.last_name) AS full_name, 
+    payment.amount, 
+    payment.payment_date 
+FROM 
+    payment
+JOIN 
+    rental ON payment.rental_id = rental.rental_id
+JOIN 
+    customer ON payment.customer_id = customer.customer_id 
+ORDER BY 
+    payment.amount DESC
+LIMIT 10;
+
+#or
+
+SELECT  
+    customer.customer_id, 
+    SUM(payment.amount) AS total_amount, 
+    DATE(payment.payment_date) AS payment_day
+FROM 
+    payment
+JOIN 
+    customer ON payment.customer_id = customer.customer_id
+where customer.customer_id = 21
+GROUP BY 
+    customer.customer_id, payment_day
+ORDER BY 
+    total_amount DESC;
+
+
+#Exercițiul 17: Găsește categoriile de filme care generează cele mai mari încasări
+#Afișează categoriile de filme și suma totală a încasărilor generate de acestea, ordonate descrescător după încasări.
+select  
+	category.name as category, 
+	count(rental.rental_id) as rentals, 
+    sum(payment.amount) as total, 
+    year(rental.rental_date) as rental_year # doar ca sa vad pe ani
+FROM 
+    payment
+JOIN rental ON payment.rental_id = rental.rental_id
+JOIN inventory ON rental.inventory_id = inventory.inventory_id
+JOIN film ON inventory.film_id = film.film_id
+JOIN film_category ON film.film_id = film_category.film_id
+JOIN category ON film_category.category_id = category.category_id 
+group by 
+	category, rental_year 
+order by 
+	category;
+
+#Exercițiul 18: Găsește orașele cu cele mai multe închirieri
+#Afișează orașele și numărul total de închirieri pentru fiecare oraș, ordonat descrescător după numărul de închirieri.
+SELECT 
+    city.city AS city_name, 
+    COUNT(rental.rental_id) AS total_rentals
+FROM 
+    rental
+JOIN 
+    customer ON rental.customer_id = customer.customer_id
+JOIN 
+    address ON customer.address_id = address.address_id
+JOIN 
+    city ON address.city_id = city.city_id
+JOIN 
+    country ON city.country_id = country.country_id
+GROUP BY 
+    city.city 
+ORDER BY 
+    total_rentals DESC;  -- Ordonează descrescător după numărul total de închirieri
+
+#Exercițiul 19: Găsește lunile cu cele mai multe închirieri
+#Afișează numărul total de închirieri pentru fiecare lună din baza de date, ordonat descrescător după numărul de închirieri.
+SELECT     
+    YEAR(rental.rental_date) AS rental_year,
+    MONTH(rental.rental_date) AS rental_month,
+    COUNT(rental.rental_id) AS rentals
+FROM 
+    rental
+JOIN 
+    inventory ON rental.inventory_id = inventory.inventory_id
+JOIN 
+    film ON inventory.film_id = film.film_id
+GROUP BY 
+    rental_year, rental_month 
+ORDER BY 
+    rentals DESC; 
+
+#Exercițiul 20: Găsește filmele care au fost închiriate de către cei mai mulți clienți diferiți
+#Afișează filmele împreună cu numărul de clienți unici care le-au închiriat.
+SELECT 
+    film.title,
+    COUNT(DISTINCT rental.customer_id) AS unique_customers
+FROM 
+    rental
+JOIN 
+    inventory ON rental.inventory_id = inventory.inventory_id
+JOIN 
+    film ON inventory.film_id = film.film_id
+JOIN 
+    customer ON rental.customer_id = customer.customer_id
+GROUP BY     
+    film.title 
+ORDER BY 
+    unique_customers DESC;
+
+
+#Exercițiul 21: Găsește clienții care au închiriat toate filmele dintr-o anumită categorie
+#Afișează clienții care au închiriat fiecare film dintr-o categorie specifică (de exemplu, "Action").
+SELECT 
+    customer.customer_id, 
+    customer.first_name, 
+    customer.last_name
+FROM 
+    rental
+JOIN 
+    inventory ON rental.inventory_id = inventory.inventory_id
+JOIN 
+    film ON inventory.film_id = film.film_id
+JOIN 
+    film_category ON film.film_id = film_category.film_id
+JOIN 
+    category ON film_category.category_id = category.category_id
+JOIN 
+    customer ON rental.customer_id = customer.customer_id
+WHERE 
+    category.name = 'Action'
+GROUP BY 
+    customer.customer_id
+HAVING 
+    COUNT(DISTINCT film.film_id) = (
+        SELECT COUNT(film.film_id) 
+        FROM film 
+        JOIN film_category ON film.film_id = film_category.film_id
+        JOIN category ON film_category.category_id = category.category_id
+        WHERE 
+            category.name = 'Action'
+    )
+ORDER BY 
+    customer.customer_id DESC;
+
+
+#Write a query to display information of Films that have maximum number of renting days for the Films that have the length
+#of is greater than or equals to 180. Order by film_id as ascending. 
+SELECT film_id, title, rental_duration
+FROM film
+WHERE length >= 180
+ORDER BY rental_duration DESC, film_id ASC;
+
+#Write a query to display number of actors for the films that have length >= 185. Order by number of actors as ascending.
+SELECT 
+    film.title AS title, 
+    COUNT(actor.actor_id) AS actors
+FROM 
+    film_actor fa
+JOIN 
+    film ON fa.film_id = film.film_id
+JOIN 
+    actor ON fa.actor_id = actor.actor_id
+WHERE 
+    film.length >= 185
+GROUP BY 
+    film.title
+ORDER BY 
+    actors ASC;
+
+#Write a query to display the total payment (total payment is calculated by sum up all amounts in Payment table) and number of renting 
+#times of films for all customers who have number of renting times is greater than or 
+#equals to 40. Order by number of renting as ascending
+SELECT 
+    customer.customer_id, 
+    SUM(payment.amount) AS total_payment, 
+    COUNT(rental.rental_id) AS renting_times
+FROM 
+    customer
+JOIN 
+    rental ON customer.customer_id = rental.customer_id
+JOIN 
+    payment ON rental.rental_id = payment.rental_id
+GROUP BY 
+    customer.customer_id
+HAVING 
+    COUNT(rental.rental_id) >= 40
+ORDER BY 
+    renting_times ASC;
+
+#Find out the top 5 countries with most number of customers. Order by number of customer as ascending.
+SELECT 
+    country.country as country, count(customer.customer_id)  as total_customer
+FROM 
+    customer
+JOIN 
+    address ON customer.address_id = address.address_id
+JOIN 
+    city ON address.city_id = city.city_id
+JOIN 
+    country ON city.country_id = country.country_id 
+group by country
+order by total_customer desc
+    limit 5;
+
+#Write a query to display the number of film for each category. Order by number of film as ascending.
+SELECT 
+    category.name as category, 
+    COUNT(film.film_id) as total_film
+FROM 
+    film
+JOIN 
+    film_category ON film.film_id = film_category.film_id
+JOIN 
+    category ON film_category.category_id = category.category_id
+GROUP BY 
+    category.name
+ORDER BY 
+    category.name ASC;
+
