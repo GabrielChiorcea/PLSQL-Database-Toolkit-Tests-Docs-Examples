@@ -1311,3 +1311,35 @@ end ;
 
 
 select * from table(f_get_days(SYSDATE, 5));
+
+
+
+ create or replace PACKAGE pack as 
+  v_salary_increase_rate number := 1000;
+  cursor cur_emps is SELECT * from EMPLOYEES;
+  PROCEDURE increase_salary;
+  function get_avg_sal(p_dept_id int) RETURN NUMBER;
+
+ end pack;
+
+
+create or replace PACKAGE BODY pack AS
+  PROCEDURE increase_salary AS
+    BEGIN
+      for r1 in cur_emps LOOP
+        update EMPLOYEES_COPY set SALARY = SALARY + v_salary_increase_rate;
+      end LOOP;
+    end increase_salary;
+  function get_avg_sal(p_dept_id int) RETURN NUMBER AS
+    v_avg_sal NUMBER := 0;
+    begin
+      SELECT avg(salary) into v_avg_sal from EMPLOYEES_COPY where EMPLOYEE_ID = p_dept_id;
+      RETURN v_avg_sal;
+    end get_avg_sal;
+end pack;  
+
+
+
+
+exec pack.increase_salary;
+
