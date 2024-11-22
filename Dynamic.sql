@@ -128,9 +128,9 @@ END;
 
 DECLARE
   TYPE emp_cur_type  IS REF CURSOR;
-  emp_cursor      emp_cur_type;
-  emp_record      employees%rowtype;
-  v_table_name    VARCHAR(20);
+  emp_cursor emp_cur_type;
+  emp_record employees%rowtype;
+  v_table_name VARCHAR(20);
 BEGIN
   v_table_name := 'employees';
   OPEN emp_cursor FOR 'SELECT * FROM '||v_table_name||' WHERE job_id = :job' USING 'IT_PROG';
