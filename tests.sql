@@ -1313,16 +1313,25 @@ end ;
 select * from table(f_get_days(SYSDATE, 5));
 
 
-
+-----start of a pack
  create or replace PACKAGE pack as 
+  type emp_table_type is table of employees%rowtype index by PLS_INTEGER;
   v_salary_increase_rate number := 1000;
+  v_min_employee_salary number := 5000;
   cursor cur_emps is SELECT * from EMPLOYEES;
   PROCEDURE increase_salary;
   function get_avg_sal(p_dept_id int) RETURN NUMBER;
+  function get_employees RETURN emp_table_type;
+  function get_employees_tobe_incremented RETURN emp_table_type;
+  PROCEDURE increase_low_salaries;
+  function arrange_for_min_salary(v_emp in EMPLOYEES%rowtype) RETURN EMPLOYEES%rowtype;
 
  end pack;
 
+------end of pack
 
+
+------star body pack
 create or replace PACKAGE BODY pack AS
   PROCEDURE increase_salary AS
     BEGIN
@@ -1330,16 +1339,49 @@ create or replace PACKAGE BODY pack AS
         update EMPLOYEES_COPY set SALARY = SALARY + v_salary_increase_rate;
       end LOOP;
     end increase_salary;
+
   function get_avg_sal(p_dept_id int) RETURN NUMBER AS
     v_avg_sal NUMBER := 0;
     begin
       SELECT avg(salary) into v_avg_sal from EMPLOYEES_COPY where EMPLOYEE_ID = p_dept_id;
       RETURN v_avg_sal;
     end get_avg_sal;
+
+  function get_employees RETURN emp_table_type is
+    v_emps emp_table_type;
+    BEGIN
+      for cur_emps in (select * from EMPLOYEES)
+        v_emps(cur_emps.employee_id) := cur_emps;
+      end loop;
+      return v_emps;
+    end;   
+
+  function get_employees_tobe_incremented RETURN emp_table_type is
+    v_emps emp_table_type;
+    i EMPLOYEES.EMPLOYEE_ID%type;
+    begin
+      v_emps := get_employees;
+      i := v_emps.first;
+      while i is not null loop
+        if v_emps(i).salary > v_min_employee_salary then
+          v_emps.delete(i);
+        end if;
+        i := v_emps.next(i);  
+      end loop;
+      return v_emps;  
+    end;
+
+
+  PROCEDURE increase_low_salaries;
+  function arrange_gor_min_salary(v_emp in EMPLOYEES%rowtype) RETURN EMPLOYEES%rowtype;
 end pack;  
-
-
+--------end body pack
 
 
 exec pack.increase_salary;
+
+
+
+
+
 
